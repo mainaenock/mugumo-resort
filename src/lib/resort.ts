@@ -9,6 +9,8 @@ export const resort = {
   google: "https://www.google.com/travel/hotels/entity/ChkIrrHI4ZbGy7VSGg0vZy8xMXNoMDZ5NXlnEAE",
 };
 
+export const resortMark = `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/brand/mugumo-resort-hero.webp`;
+
 export const navigation = [
   { label: "Home", href: "/" },
   { label: "Stay", href: "/rooms/" },

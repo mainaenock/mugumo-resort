@@ -4,9 +4,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
-import { imagePath, photos } from "@/lib/resort";
-
-const heroLogo = `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/brand/mugumo-resort-hero.webp`;
+import { imagePath, photos, resortMark } from "@/lib/resort";
 
 const scenes = [
   { name: "The outdoor pool", photo: photos.pool, focus: "50% 54%", mobileFocus: "57% 54%" },
@@ -110,7 +108,7 @@ export default function HomeHero() {
       </div>
 
       <div className="wrap home-hero-content">
-        <Image className="home-hero-logo" src={heroLogo} alt="" width={512} height={512} priority />
+        <Image className="home-hero-logo" src={resortMark} alt="" width={512} height={512} priority />
         <h1>
           <span className="home-hero-title-prefix">The</span>{" "}
           <span className="home-hero-title-name">Mugumo Valley Resort</span>
