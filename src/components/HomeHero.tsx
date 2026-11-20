@@ -7,7 +7,7 @@ import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
 import { imagePath, photos, resortMark } from "@/lib/resort";
 
 const scenes = [
-  { name: "The outdoor pool", photo: photos.pool, focus: "50% 54%", mobileFocus: "57% 54%" },
+  { name: "The outdoor pool", photo: { ...photos.pool, file: "hero-poolside" }, focus: "50% 54%", mobileFocus: "57% 54%" },
   { name: "The garden grounds", photo: photos.grounds, focus: "50% 50%", mobileFocus: "44% 50%" },
   { name: "A deluxe room", photo: photos.double, focus: "50% 52%", mobileFocus: "50% 54%" },
   { name: "Poolside dining", photo: photos.diningTerrace, focus: "50% 58%", mobileFocus: "52% 54%" },
