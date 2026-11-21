@@ -20,11 +20,15 @@ export default function Footer() {
             <p>{resort.address}, Kenya</p>
             <a href={resort.tel}>{resort.phone}</a>
             <Link href="/contact/">Contact & directions</Link>
+            <Link href="/book/">Book a demo stay</Link>
           </div>
         </div>
         <div className="footer-bottom">
           <small>© {resort.name}</small>
-          <Link href="/gallery/#photo-credits">Photo credits</Link>
+          <div className="actions">
+            <Link href="/gallery/#photo-credits">Photo credits</Link>
+            <Link href="/admin/">Demo admin</Link>
+          </div>
         </div>
       </div>
     </footer>

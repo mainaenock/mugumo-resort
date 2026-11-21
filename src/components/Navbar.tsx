@@ -39,7 +39,7 @@ export default function Navbar() {
           ))}
           <Link className="mobile-contact" href="/contact/" aria-current={pathname === "/contact" ? "page" : undefined} onClick={() => setMenuPage(null)}>Contact</Link>
         </nav>
-        <Link className="button button-primary header-action" href="/contact/" aria-current={pathname === "/contact" ? "page" : undefined}>Enquire</Link>
+        <Link className="button button-primary header-action" href="/book/" aria-current={pathname === "/book" ? "page" : undefined} onClick={() => setMenuPage(null)}>Book now</Link>
         <button ref={toggle} className="menu-toggle" type="button" aria-controls="site-navigation" aria-expanded={menuOpen} aria-label={menuOpen ? "Close menu" : "Open menu"} onClick={() => setMenuPage(menuOpen ? null : pathname)}>
           {menuOpen ? <X size={24} /> : <Menu size={24} />}
         </button>

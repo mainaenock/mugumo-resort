@@ -40,10 +40,25 @@ export const photos = {
 } satisfies Record<string, Photo>;
 
 export const rooms = [
-  { name: "Deluxe Double", guests: "2 guests", bed: "1 double bed", photo: photos.double },
-  { name: "Deluxe Twin", guests: "2 guests", bed: "2 twin beds", photo: photos.twin },
-  { name: "Deluxe Single", guests: "1 guest", bed: "1 twin bed", photo: photos.single },
+  { id: "deluxe-double", name: "Deluxe Double", capacity: 2, guests: "2 guests", bed: "1 double bed", photo: photos.double, description: "A pool-view room with a double bed for a couple or a guest who wants extra space.", rate: 8500, inventory: 3 },
+  { id: "deluxe-twin", name: "Deluxe Twin", capacity: 2, guests: "2 guests", bed: "2 twin beds", photo: photos.twin, description: "Two separate beds and a pool view, suited to friends or colleagues travelling together.", rate: 8000, inventory: 2 },
+  { id: "deluxe-single", name: "Deluxe Single", capacity: 1, guests: "1 guest", bed: "1 twin bed", photo: photos.single, description: "A pool-view room with a single bed for a solo stay in Thika.", rate: 6000, inventory: 2 },
 ];
+
+export type Room = (typeof rooms)[number];
+
+export const roomAmenities = ["In-room Wi-Fi", "Private bathroom", "Smart TV", "On-site parking"];
+
+export const menu = [
+  { id: "continental-breakfast", name: "Continental breakfast", category: "Breakfast", description: "Toast, seasonal fruit, eggs and your choice of tea or coffee.", price: 950 },
+  { id: "beef-stew", name: "Kenyan beef stew", category: "Mains", description: "Slow-cooked beef with sukuma wiki and your choice of ugali or rice.", price: 1250 },
+  { id: "grilled-chicken", name: "Grilled chicken", category: "Mains", description: "Grilled chicken with chips, a side salad and lemon.", price: 1450 },
+  { id: "vegetable-pilau", name: "Vegetable pilau", category: "Mains", description: "Spiced rice with seasonal vegetables and fresh kachumbari.", price: 950 },
+  { id: "fresh-juice", name: "Fresh fruit juice", category: "Drinks", description: "Ask about the fruit of the day.", price: 350 },
+  { id: "kenyan-tea", name: "Kenyan tea", category: "Drinks", description: "A pot of Kenyan black tea, served with or without milk.", price: 250 },
+];
+
+export type MenuItem = (typeof menu)[number];
 
 export const attractions = [
   {

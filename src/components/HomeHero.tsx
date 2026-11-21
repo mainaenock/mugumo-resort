@@ -114,8 +114,8 @@ export default function HomeHero() {
           <span className="home-hero-title-name">Mugumo Valley Resort</span>
         </h1>
         <div className="actions">
-          <Link href="/rooms/" className="button button-gold">Explore rooms</Link>
-          <Link href="/contact/" className="button button-outline-light">Plan your visit</Link>
+          <Link href="/book/" className="button button-gold">Book your stay</Link>
+          <Link href="/rooms/" className="button button-outline-light">Explore rooms</Link>
         </div>
       </div>
 

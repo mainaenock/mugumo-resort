@@ -1,6 +1,6 @@
 # The Mugumo Valley Resort
 
-A seven-page Next.js frontend for The Mugumo Valley Resort in Thika, Kenya. The site provides room comparisons, dining and resort information, local attractions, a gallery, and directions. Booking links go to the resort’s listed phone number or Expedia.
+A static-exportable Next.js frontend for The Mugumo Valley Resort in Thika, Kenya. It includes a room and dining catalog, a direct booking demo, resort information, local attractions, a gallery, and directions.
 
 ## Preview locally
 
@@ -10,6 +10,18 @@ npm run dev
 ```
 
 Visit [localhost:3000](http://localhost:3000).
+
+## Try the booking demo
+
+- Open [/rooms/](http://localhost:3000/rooms/) to compare room types and start checkout with a preferred room. At [/book/](http://localhost:3000/book/), pick dates, choose a room, enter sample guest details, and simulate a payment. A decline can be retried without making a reservation.
+- Open [/admin/](http://localhost:3000/admin/) in the same browser to review reservations and payment attempts, cancel a booking, edit nightly room rates and counts, or change sample menu prices and visibility.
+- The demo uses one room per stay, a sample inventory and KES rates, and full prepayment for the simulation. It saves reservations, simulated payment results, and catalog edits in browser local storage for the site’s origin. Use sample guest details. The admin is open, and no payments or emails are sent.
+
+### Backend integration
+
+`src/lib/booking.ts` contains the shared stay, reservation, and payment types. `src/lib/demo-store.ts` implements the browser storage and demo actions for checkout, cancellations, and catalog updates. The production version can replace that adapter with backend calls. Have the server own prices, inventory and reservation status, hold inventory transactionally during payment, and confirm the reservation after a verified payment-provider callback. Use idempotency for checkout and callback retries, require staff authorization for admin operations, and set the resort’s actual deposit, cancellation, and refund terms before accepting live bookings.
+
+The booking sequence follows [Cloudbeds’ booking engine guide](https://developers.cloudbeds.com/docs/booking-engine). For real payment testing and confirmation, see [Stripe testing](https://docs.stripe.com/testing), [Stripe fulfillment](https://docs.stripe.com/checkout/fulfillment), and [Safaricom Daraja](https://developer.safaricom.co.ke/).
 
 ## Build a static preview
 
