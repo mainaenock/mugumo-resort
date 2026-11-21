@@ -6,6 +6,7 @@ export type PaymentMethod = "mpesa" | "card";
 export type Reservation = Stay & {
   id: string;
   roomId: string;
+  roomName?: string;
   guest: Guest;
   nightlyRate: number;
   total: number;
@@ -19,7 +20,6 @@ export type Payment = {
   status: "paid" | "declined" | "refunded";
   createdAt: string;
 };
-export type RoomSettings = { rate: number; inventory: number };
 
 export const paymentLabels: Record<PaymentMethod, string> = {
   mpesa: "M-PESA",
@@ -35,6 +35,7 @@ const resortCalendar = new Intl.DateTimeFormat("sv-SE", { year: "numeric", month
 export const price = (amount: number) => currency.format(amount);
 export const showDate = (value: string) => dateFormat.format(new Date(value));
 export const today = () => resortCalendar.format();
+export const resortDate = (value: string) => resortCalendar.format(new Date(value));
 
 function dateNumber(value: string) {
   const parsed = Date.parse(value);

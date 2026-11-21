@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export default function BookingPage() {
   return (
     <>
-      <PageHero label="Reservations" title="Book your stay" description="Find a pool-view room and try the resort’s online booking demo." />
+      <PageHero label="Reservations" title="Book your stay" description="Find an available room and try the resort’s online booking demo." />
       <div className="wrap booking-shell">
         <Suspense fallback={<p role="status">Loading booking form…</p>}>
           <BookingFlow />

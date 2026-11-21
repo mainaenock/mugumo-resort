@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Wifi, Bath, Tv, CarFront } from "lucide-react";
-import { photos, resort, rooms } from "@/lib/resort";
-import ResortPhoto from "@/components/ResortPhoto";
-import RoomRate from "@/components/RoomRate";
+import { photos, resort } from "@/lib/resort";
+import RoomCatalog from "@/components/RoomCatalog";
 import { EnquireBand, PageHero } from "@/components/PageSections";
 
 export const metadata: Metadata = {
@@ -21,25 +20,13 @@ const amenities = [
 export default function RoomsPage() {
   return (
     <>
-      <PageHero label="Stay" title="Rooms with a pool view" description="Choose between a single, double or twin room for your stay in Thika." photo={photos.double} />
+      <PageHero label="Stay" title="Stay at Mugumo Valley" description="Compare room types and find a place to stay in Thika." photo={photos.double} />
       <section className="wrap section-space">
         <div className="section-heading catalog-heading">
           <h2>Find your room</h2>
           <Link href="/book/" className="button button-primary">Check availability</Link>
         </div>
-        <div className="card-grid">
-          {rooms.map((room) => (
-            <article className="story-card" key={room.name}>
-              <Link className="card-photo" href={`/rooms/${room.id}/`} aria-label={`View ${room.name}`}><ResortPhoto photo={room.photo} sizes="(max-width: 760px) 100vw, 33vw" /></Link>
-              <div className="card-copy">
-                <h3>{room.name}</h3>
-                <p>{room.guests} · {room.bed} · Pool view</p>
-                <RoomRate room={room} />
-                <Link className="text-link" href={`/rooms/${room.id}/`} aria-label={`View ${room.name} details`}>Room details</Link>
-              </div>
-            </article>
-          ))}
-        </div>
+        <RoomCatalog />
         <ul className="amenity-list" aria-label="Stay amenities">
           {amenities.map(({ label, Icon }) => <li key={label}><Icon size={21} aria-hidden="true" /> {label}</li>)}
         </ul>

@@ -18,6 +18,7 @@ export const navigation = [
   { label: "Resort", href: "/resort/" },
   { label: "Explore", href: "/attractions/" },
   { label: "Gallery", href: "/gallery/" },
+  { label: "Blog", href: "/blog/" },
 ];
 
 export type Photo = { file: string; alt: string };

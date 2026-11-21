@@ -1,34 +1,60 @@
 "use client";
 
-import { useRef, useState, type FormEvent } from "react";
+import { Fragment, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
-import { paymentLabels, price, showDate } from "@/lib/booking";
-import { cancelReservation, menuSettings, roomSettings, saveMenuSettings, saveRoomSettings, useDemoData } from "@/lib/demo-store";
-import { menu, rooms } from "@/lib/resort";
+import { BedDouble, BookOpen, CalendarDays, ChartNoAxesCombined, ExternalLink, LayoutDashboard, Utensils } from "lucide-react";
+import { price, showDate, today } from "@/lib/booking";
+import { cancelReservation, getMenu, getPosts, getRooms, useDemoData } from "@/lib/demo-store";
+import { resortMark } from "@/lib/resort";
+import AdminOverview, { sampleSales, SalesTable } from "./AdminOverview";
+import { BlogManager, MenuManager, RoomManager } from "./AdminListings";
 
-const views = ["Reservations", "Payments", "Rooms", "Dining"] as const;
-const paymentStatus = { paid: "Paid", declined: "Declined", refunded: "Refunded" };
+const links = [
+  { key: "overview", label: "Overview", Icon: LayoutDashboard },
+  { key: "reservations", label: "Reservations", Icon: CalendarDays },
+  { key: "sales", label: "Sales", Icon: ChartNoAxesCombined },
+  { key: "rooms", label: "Room listings", Icon: BedDouble },
+  { key: "menu", label: "Menu items", Icon: Utensils },
+  { key: "blog", label: "Blog posts", Icon: BookOpen },
+] as const;
+
+type View = (typeof links)[number]["key"];
 
 export default function DemoAdmin() {
   const { data, ready, error: storageError } = useDemoData();
-  const [view, setView] = useState<(typeof views)[number]>("Reservations");
+  const [view, setView] = useState<View>("overview");
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
+  const [salesFilter, setSalesFilter] = useState("all");
+  const [salesSource, setSalesSource] = useState<"sample" | "local">("local");
   const [cancelId, setCancelId] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const saving = useRef(false);
-  const confirmed = data.reservations.filter((reservation) => reservation.status === "confirmed");
-  const received = data.payments.reduce((total, payment) => total + (payment.status === "paid" ? payment.amount : 0), 0);
+  const content = useRef<HTMLDivElement>(null);
+  const rooms = getRooms(data);
+  const roomNames = new Map(rooms.map((room) => [room.id, room.name]));
+  const reservationNames = new Map(data.reservations.map((record) => [record.id, record.roomName ?? roomNames.get(record.roomId)]));
+  const sales = data.payments.map((payment) => ({ ...payment, roomName: payment.reservationId ? reservationNames.get(payment.reservationId) : undefined }));
   const search = query.trim().toLowerCase();
-  const reservations = data.reservations.filter((reservation) =>
-    (filter === "all" || filter === reservation.status) &&
-    [reservation.id, reservation.guest.name, reservation.guest.email].some((value) => value.toLowerCase().includes(search)),
+  const reservations = data.reservations.filter((record) =>
+    (filter === "all" || filter === record.status) &&
+    [record.id, record.guest.name, record.guest.email, reservationNames.get(record.id) ?? ""].some((value) => value.toLowerCase().includes(search)),
   );
 
+  function navigate(next: View) {
+    setView(next);
+    setCancelId("");
+    setMessage("");
+    setError("");
+    content.current?.focus({ preventScroll: true });
+    window.scrollTo({ top: 0 });
+  }
+
   async function save(action: () => Promise<unknown>, success: string) {
-    if (saving.current) return;
+    if (saving.current || storageError) return false;
     saving.current = true;
     setBusy(true);
     setMessage("");
@@ -37,123 +63,104 @@ export default function DemoAdmin() {
       await action();
       setMessage(success);
       setCancelId("");
+      return true;
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : "The update could not be saved.");
+      return false;
     } finally {
       saving.current = false;
       setBusy(false);
     }
   }
 
-  function formData(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    return new FormData(event.currentTarget);
-  }
-
   return (
-    <div className="admin-dashboard">
-      <p className="demo-notice"><strong>Local demo</strong><span>This admin has no sign-in. It shows the sample data saved in this browser.</span></p>
-      <dl className="admin-stats">
-        <div><dt>Confirmed stays</dt><dd>{confirmed.length}</dd></div>
-        <div><dt>Payment attempts</dt><dd>{data.payments.length}</dd></div>
-        <div><dt>Net simulated payments</dt><dd>{price(received)}</dd></div>
-      </dl>
-      <nav className="gallery-filters admin-nav" aria-label="Demo admin sections">
-        {views.map((item) => <button type="button" key={item} aria-pressed={view === item} onClick={() => {
-          setView(item);
-          setCancelId("");
-          setMessage("");
-          setError("");
-        }}>{item}</button>)}
-      </nav>
-      {(error || storageError) && <p className="form-error" role="alert">{error || storageError}</p>}
-      {message && <p className="form-success" role="status">{message}</p>}
-      {!ready ? <p role="status">Loading demo records…</p> : view === "Reservations" ? (
-        <section className="booking-panel admin-panel" aria-label="Reservations">
-          <div className="admin-heading"><h2>Reservations</h2><Link className="text-link" href="/book/">Create a demo booking</Link></div>
-          <div className="admin-filters">
-            <label className="form-field">Search reservations
-              <input type="search" placeholder="Guest name, email or reference" value={query} onChange={(event) => setQuery(event.target.value)} />
-            </label>
-            <label className="form-field">Status
-              <select value={filter} onChange={(event) => setFilter(event.target.value)}>
-                <option value="all">All statuses</option><option value="confirmed">Confirmed</option><option value="cancelled">Cancelled</option>
-              </select>
-            </label>
-          </div>
-          {!reservations.length ? (
-            <p className="admin-empty">{data.reservations.length ? "No reservations match your filters." : "Completed demo bookings will appear here."}</p>
-          ) : (
-            <ul className="admin-records">
-              {reservations.map((reservation) => (
-                <li key={reservation.id}>
-                  <div className="reservation-row">
-                    <div><strong>{reservation.guest.name}</strong><small>{reservation.guest.email}</small><small className="booking-reference">{reservation.id}</small></div>
-                    <div><strong>{rooms.find((room) => room.id === reservation.roomId)?.name}</strong><small>{showDate(reservation.checkIn)} – {showDate(reservation.checkOut)}</small><small>{reservation.guests} {reservation.guests === 1 ? "guest" : "guests"}</small></div>
-                    <div><strong>{price(reservation.total)}</strong><small className="status-pill" data-status={reservation.status}>{reservation.status === "confirmed" ? "Confirmed" : "Cancelled"}</small></div>
-                    {reservation.status === "confirmed" && <button type="button" className="button button-outline" disabled={busy || !!storageError} onClick={() => setCancelId(reservation.id)}>Cancel booking</button>}
-                  </div>
-                  {cancelId === reservation.id && <div className="cancel-panel">
-                    <p>This will free the room and mark the simulated payment as refunded.</p>
-                    <div className="actions">
-                      <button type="button" className="button button-outline" disabled={busy} onClick={() => setCancelId("")}>Keep booking</button>
-                      <button type="button" className="button button-danger" disabled={busy} onClick={() => void save(() => cancelReservation(reservation.id), `Booking ${reservation.id} cancelled.`)}>Confirm cancellation</button>
-                    </div>
-                  </div>}
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      ) : view === "Payments" ? (
-        <section className="booking-panel admin-panel" aria-label="Payments">
-          <div className="admin-heading"><h2>Payments</h2><p className="field-hint">Simulated transactions in KES</p></div>
-          {data.payments.length ? <ul className="admin-records">
-            {data.payments.map((payment) => <li className="payment-row" key={payment.id}>
-              <div><strong>{paymentLabels[payment.method]}</strong><small>{payment.reservationId ?? "No reservation"}</small></div>
-              <div><strong>{price(payment.amount)}</strong><small>{showDate(payment.createdAt)}</small></div>
-              <span className="status-pill" data-status={payment.status}>{paymentStatus[payment.status]}</span>
-            </li>)}
-          </ul> : <p className="admin-empty">Successful and declined demo payments will appear here.</p>}
-        </section>
-      ) : view === "Rooms" ? (
-        <section className="booking-panel admin-panel" aria-label="Room settings">
-          <div className="admin-heading"><h2>Room inventory & rates</h2><Link className="text-link" href="/rooms/">View room listings</Link></div>
-          <p className="field-hint">Set the nightly rate and number of demo rooms of each type. Existing bookings keep their original rates.</p>
-          <div className="admin-edit-list">
-            {rooms.map((room) => {
-              const { rate, inventory } = roomSettings(data, room);
-              return <form key={`${room.id}-${rate}-${inventory}`} className="admin-edit-row" onSubmit={(event) => {
-                const fields = formData(event);
-                void save(() => saveRoomSettings(room, { rate: Number(fields.get("rate")), inventory: Number(fields.get("inventory")) }), `${room.name} updated.`);
-              }}>
-                <div><h3>{room.name}</h3><p className="field-hint">{room.guests} · {room.bed}</p></div>
-                <label className="form-field">Nightly rate (KES)<input type="number" name="rate" required min="1" max="1000000" step="1" defaultValue={rate} /></label>
-                <label className="form-field">Room count<input type="number" name="inventory" required min="0" max="100" step="1" defaultValue={inventory} /></label>
-                <button className="button button-primary" disabled={busy || !!storageError}>Save room</button>
-              </form>;
-            })}
-          </div>
-        </section>
-      ) : (
-        <section className="booking-panel admin-panel" aria-label="Dining settings">
-          <div className="admin-heading"><h2>Sample menu</h2><Link className="text-link" href="/dining/#menu">View dining menu</Link></div>
-          <div className="admin-edit-list">
-            {menu.map((item) => {
-              const settings = menuSettings(data, item);
-              return <form key={`${item.id}-${settings.price}-${settings.visible}`} className="admin-edit-row" onSubmit={(event) => {
-                const fields = formData(event);
-                void save(() => saveMenuSettings(item, { price: Number(fields.get("price")), visible: fields.get("visible") === "true" }), `${item.name} updated.`);
-              }}>
-                <div><h3>{item.name}</h3><p className="field-hint">{item.category}</p></div>
-                <label className="form-field">Price (KES)<input type="number" name="price" required min="1" max="1000000" step="1" defaultValue={settings.price} /></label>
-                <label className="form-field">Menu visibility<select name="visible" defaultValue={String(settings.visible)}><option value="true">Visible</option><option value="false">Hidden</option></select></label>
-                <button className="button button-primary" disabled={busy || !!storageError}>Save item</button>
-              </form>;
-            })}
-          </div>
-        </section>
-      )}
+    <div className="ops-shell">
+      <aside className="ops-sidebar">
+        <Link className="ops-brand" href="/admin/" aria-label="Mugumo Valley admin" onClick={() => navigate("overview")}>
+          <Image src={resortMark} alt="" width={48} height={48} />
+          <span><strong>Mugumo Valley</strong><small>Resort administration</small></span>
+        </Link>
+        <nav className="ops-navigation" aria-label="Administration">
+          {links.map(({ key, label, Icon }) => <button type="button" key={key} aria-current={view === key ? "page" : undefined} disabled={busy} onClick={() => navigate(key)}>
+            <Icon size={19} aria-hidden="true" />{label}
+          </button>)}
+        </nav>
+        <p className="ops-sidebar-note">Front-end demo · browser storage</p>
+      </aside>
+      <div className="ops-workspace">
+        <header className="ops-topbar">
+          <span>Demo admin</span>
+          <Link className="ops-button ops-secondary" href="/">View website<ExternalLink size={16} aria-hidden="true" /></Link>
+        </header>
+        <div className="ops-content" tabIndex={-1} ref={content}>
+          {(storageError || error) && <p className="form-error" role="alert">{storageError || error}</p>}
+          {message && <p className="form-success" role="status">{message}</p>}
+          {!ready ? <p role="status">Loading dashboard…</p> : view === "overview" ? (
+            <AdminOverview data={data} sales={sales} openSales={(sample) => {
+              setSalesSource(sample ? "sample" : "local");
+              setSalesFilter("all");
+              navigate("sales");
+            }} />
+          ) : view === "reservations" ? (
+            <>
+              <div className="ops-page-heading">
+                <div><h1>Reservations</h1><p>Find guest bookings and manage cancellations.</p></div>
+                <Link className="ops-button ops-primary" href="/book/">Create demo booking</Link>
+              </div>
+              <section className="ops-card" aria-label="Reservation records">
+                <div className="ops-card-heading ops-filters">
+                  <label className="ops-field">Search bookings<input type="search" placeholder="Guest, room or reference" value={query} onChange={(event) => setQuery(event.target.value)} /></label>
+                  <label className="ops-field">Booking status<select value={filter} onChange={(event) => setFilter(event.target.value)}>
+                    <option value="all">All statuses</option><option value="confirmed">Confirmed</option><option value="cancelled">Cancelled</option>
+                  </select></label>
+                </div>
+                {!reservations.length ? (
+                  <p className="ops-empty">{data.reservations.length ? "No reservations match these filters." : "Completed demo bookings will appear here."}</p>
+                ) : (
+                  <div className="ops-table-wrap"><table className="ops-table" aria-label="Reservations">
+                    <thead><tr><th scope="col">Guest</th><th scope="col">Room & stay</th><th scope="col">Total</th><th scope="col">Status</th><th scope="col"><span className="ops-sr-only">Actions</span></th></tr></thead>
+                    <tbody>{reservations.map((record) => (
+                      <Fragment key={record.id}>
+                        <tr>
+                          <td><strong>{record.guest.name}</strong><small>{record.guest.email}</small><small>{record.id}</small></td>
+                          <td><strong>{reservationNames.get(record.id) ?? "Room"}</strong><small>{showDate(record.checkIn)} – {showDate(record.checkOut)}</small></td>
+                          <td>{price(record.total)}</td>
+                          <td><span className="ops-status" data-status={record.status}>{record.status === "confirmed" ? "Confirmed" : "Cancelled"}</span></td>
+                          <td>{record.status === "confirmed" && <button type="button" className="ops-button ops-secondary" disabled={busy || !!storageError} onClick={() => setCancelId(record.id)}>Cancel booking</button>}</td>
+                        </tr>
+                        {cancelId === record.id && record.status === "confirmed" && <tr><td colSpan={5}>
+                          <div className="ops-cancellation">
+                            <p>Cancel this booking, release the room and mark the simulated payment as refunded?</p>
+                            <div className="ops-actions">
+                              <button className="ops-button ops-secondary" type="button" disabled={busy} onClick={() => setCancelId("")}>Keep booking</button>
+                              <button className="ops-button ops-danger" type="button" disabled={busy} onClick={() => void save(() => cancelReservation(record.id), "Booking " + record.id + " cancelled.")}>Confirm cancellation</button>
+                            </div>
+                          </div>
+                        </td></tr>}
+                      </Fragment>
+                    ))}</tbody>
+                  </table></div>
+                )}
+              </section>
+            </>
+          ) : view === "sales" ? (
+            <>
+              <div className="ops-page-heading"><div><h1>Sales</h1><p>Review simulated payments, declines and refunds in KES.</p></div></div>
+              <section className="ops-card" aria-label="Sales records">
+                <div className="ops-card-heading ops-filters">
+                  <label className="ops-field">Data source<select value={salesSource} onChange={(event) => setSalesSource(event.target.value === "sample" ? "sample" : "local")}><option value="local">This browser</option><option value="sample">Sample report</option></select></label>
+                  <label className="ops-field">Payment status<select value={salesFilter} onChange={(event) => setSalesFilter(event.target.value)}>
+                    <option value="all">All statuses</option><option value="paid">Paid</option><option value="declined">Declined</option><option value="refunded">Refunded</option>
+                  </select></label>
+                </div>
+                <SalesTable sales={(salesSource === "sample" ? sampleSales(today()) : sales).filter((sale) => salesFilter === "all" || sale.status === salesFilter)} />
+              </section>
+            </>
+          ) : view === "rooms" ? <RoomManager rooms={rooms} save={save} busy={busy || !!storageError} />
+            : view === "menu" ? <MenuManager items={getMenu(data)} save={save} busy={busy || !!storageError} />
+            : <BlogManager posts={getPosts(data)} save={save} busy={busy || !!storageError} />}
+        </div>
+      </div>
     </div>
   );
 }

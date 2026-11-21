@@ -1,23 +1,26 @@
 "use client";
 
 import { useMemo, useSyncExternalStore } from "react";
-import { availableRooms, guestError, nights, stayError, type Guest, type Payment, type PaymentMethod, type Reservation, type RoomSettings, type Stay } from "./booking";
-import { rooms, type MenuItem, type Room } from "./resort";
+import { availableRooms, guestError, nights, stayError, type Guest, type Payment, type PaymentMethod, type Reservation, type Stay } from "./booking";
+import { menu, rooms } from "./resort";
+import { starterPosts, type BlogPost, type MenuListing, type RoomListing } from "./catalog";
 
-type MenuSettings = { price: number; visible: boolean };
-type DemoData = {
+export type DemoData = {
   reservations: Reservation[];
   payments: Payment[];
-  rooms: Record<string, RoomSettings>;
-  menu: Record<string, MenuSettings>;
+  rooms: Record<string, Partial<RoomListing>>;
+  menu: Record<string, Partial<MenuListing>>;
+  roomListings: RoomListing[];
+  menuListings: MenuListing[];
+  posts: Record<string, BlogPost>;
 };
 
 const storageKey = `mugumo-demo-v1:${process.env.NEXT_PUBLIC_BASE_PATH ?? "/"}`;
 const updateEvent = "mugumo-demo-update";
-const emptyData: DemoData = { reservations: [], payments: [], rooms: {}, menu: {} };
+const emptyData: DemoData = { reservations: [], payments: [], rooms: {}, menu: {}, roomListings: [], menuListings: [], posts: {} };
 
 function parseData(raw: string | null): DemoData {
-  return raw ? JSON.parse(raw) : emptyData;
+  return raw ? { ...emptyData, ...JSON.parse(raw) } : emptyData;
 }
 
 function readSnapshot() {
@@ -51,12 +54,17 @@ export function useDemoData() {
   }, [snapshot]);
 }
 
-export function roomSettings(data: DemoData, room: Room): RoomSettings {
-  return data.rooms[room.id] ?? { rate: room.rate, inventory: room.inventory };
+export function getRooms(data: DemoData): RoomListing[] {
+  return [...rooms.map((room) => ({ ...room, visible: true, ...data.rooms[room.id] })), ...data.roomListings];
 }
 
-export function menuSettings(data: DemoData, item: MenuItem): MenuSettings {
-  return data.menu[item.id] ?? { price: item.price, visible: true };
+export function getMenu(data: DemoData): MenuListing[] {
+  return [...menu.map((item) => ({ ...item, visible: true, ...data.menu[item.id] })), ...data.menuListings];
+}
+
+export function getPosts(data: DemoData): BlogPost[] {
+  const posts = Object.fromEntries(starterPosts.map((post) => [post.id, post]));
+  return Object.values({ ...posts, ...data.posts });
 }
 
 // Read and write inside the same lock so two tabs cannot sell the same last room.
@@ -100,10 +108,10 @@ export function submitCheckout({ id, stay, roomId, guest, method, outcome, quote
 
     const invalid = stayError(stay) || guestError(guest);
     if (invalid) throw new Error(invalid);
-    const room = rooms.find((item) => item.id === roomId);
+    const room = getRooms(data).find((item) => item.visible && item.id === roomId);
     if (!room || stay.guests > room.capacity) throw new Error("Choose a room that fits your group.");
 
-    const { rate, inventory } = roomSettings(data, room);
+    const { rate, inventory } = room;
     if (rate !== quotedRate) throw new Error("The room rate has changed. Review the new total before trying again.");
     if (!availableRooms(room, inventory, stay, data.reservations)) {
       throw new Error("This room is no longer available for those dates. Go back to choose another room or change your dates.");
@@ -111,7 +119,7 @@ export function submitCheckout({ id, stay, roomId, guest, method, outcome, quote
 
     const total = rate * nights(stay);
     const reservation: Reservation | null = outcome === "paid" ? {
-      ...stay, id: `MV-${id.replaceAll("-", "").slice(0, 12).toUpperCase()}`, roomId, guest, nightlyRate: rate, total, status: "confirmed",
+      ...stay, id: `MV-${id.replaceAll("-", "").slice(0, 12).toUpperCase()}`, roomId, roomName: room.name, guest, nightlyRate: rate, total, status: "confirmed",
     } : null;
     const payment: Payment = { id, reservationId: reservation?.id ?? null, method, amount: total, status: outcome, createdAt: new Date().toISOString() };
     return {
@@ -136,16 +144,40 @@ export function cancelReservation(id: string) {
   }));
 }
 
-export function saveRoomSettings(room: Room, settings: RoomSettings) {
-  return transact((data) => ({
-    next: { ...data, rooms: { ...data.rooms, [room.id]: settings } },
-    result: undefined,
-  }));
+export function saveRoomListing(room: RoomListing) {
+  return transact((data) => {
+    if (!room.name || !room.description || !room.bed || !Number.isInteger(room.rate) || room.rate < 1 || room.rate > 1000000 ||
+      !Number.isInteger(room.inventory) || room.inventory < 0 || room.inventory > 100 || ![1, 2].includes(room.capacity)) {
+      throw new Error("Enter a room name, description, bed setup, valid rate and room count.");
+    }
+    const builtIn = rooms.some(({ id }) => id === room.id);
+    const roomListings = data.roomListings.some(({ id }) => id === room.id)
+      ? data.roomListings.map((item) => item.id === room.id ? room : item)
+      : [...data.roomListings, room];
+    const next = builtIn ? { ...data, rooms: { ...data.rooms, [room.id]: room } } : { ...data, roomListings };
+    return { next, result: room };
+  });
 }
 
-export function saveMenuSettings(item: MenuItem, settings: MenuSettings) {
-  return transact((data) => ({
-    next: { ...data, menu: { ...data.menu, [item.id]: settings } },
-    result: undefined,
-  }));
+export function saveMenuListing(item: MenuListing) {
+  return transact((data) => {
+    if (!item.name || !item.description || !item.category || !Number.isInteger(item.price) || item.price < 1 || item.price > 1000000) {
+      throw new Error("Enter an item name, description, category and valid price.");
+    }
+    const builtIn = menu.some(({ id }) => id === item.id);
+    const menuListings = data.menuListings.some(({ id }) => id === item.id)
+      ? data.menuListings.map((entry) => entry.id === item.id ? item : entry)
+      : [...data.menuListings, item];
+    const next = builtIn ? { ...data, menu: { ...data.menu, [item.id]: item } } : { ...data, menuListings };
+    return { next, result: item };
+  });
+}
+
+export function saveBlogPost(post: Omit<BlogPost, "publishedAt">, publish: boolean) {
+  return transact((data) => {
+    if (!post.title || !post.excerpt || !post.body) throw new Error("Enter a title, summary and article body.");
+    const previous = getPosts(data).find(({ id }) => id === post.id);
+    const saved = { ...post, publishedAt: publish ? previous?.publishedAt ?? new Date().toISOString() : null };
+    return { next: { ...data, posts: { ...data.posts, [post.id]: saved } }, result: saved };
+  });
 }

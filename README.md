@@ -14,8 +14,9 @@ Visit [localhost:3000](http://localhost:3000).
 ## Try the booking demo
 
 - Open [/rooms/](http://localhost:3000/rooms/) to compare room types and start checkout with a preferred room. At [/book/](http://localhost:3000/book/), pick dates, choose a room, enter sample guest details, and simulate a payment. A decline can be retried without making a reservation.
-- Open [/admin/](http://localhost:3000/admin/) in the same browser to review reservations and payment attempts, cancel a booking, edit nightly room rates and counts, or change sample menu prices and visibility.
-- The demo uses one room per stay, a sample inventory and KES rates, and full prepayment for the simulation. It saves reservations, simulated payment results, and catalog edits in browser local storage for the site’s origin. Use sample guest details. The admin is open, and no payments or emails are sent.
+- Open [/admin/](http://localhost:3000/admin/) to see the overview, sales chart and transaction table. Switch between the sample report and bookings in this browser. Use Reservations to search and cancel a booking.
+- Use **Room listings** and **Menu items** to add or edit entries and control their visibility. Visible rooms appear in the room catalog and can be booked when inventory is available. **Blog posts** lets you write a post, save it as a draft, or publish it to [/blog/](http://localhost:3000/blog/). The blog starts with two sample articles.
+- The demo uses one room per stay, a sample inventory and KES rates, and full prepayment for the simulation. It saves reservations, simulated payment results, listings, and posts in browser local storage for the site’s origin. Switch between public and admin pages on that same origin to see updates. Use sample guest details. The admin is open, and no payments or emails are sent.
 
 ### Backend integration
 

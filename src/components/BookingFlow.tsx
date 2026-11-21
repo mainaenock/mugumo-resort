@@ -5,8 +5,8 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { CalendarDays, CircleCheck, CreditCard, Smartphone, Users } from "lucide-react";
 import { addDays, availableRooms, guestError, nights, paymentLabels, price, showDate, stayError, today, type Guest, type PaymentMethod, type Reservation, type Stay } from "@/lib/booking";
-import { roomSettings, submitCheckout, useDemoData } from "@/lib/demo-store";
-import { rooms } from "@/lib/resort";
+import { getRooms, submitCheckout, useDemoData } from "@/lib/demo-store";
+import { photos } from "@/lib/resort";
 import ResortPhoto from "./ResortPhoto";
 
 const steps = ["Dates", "Room", "Guest details", "Payment"];
@@ -47,11 +47,12 @@ export default function BookingFlow() {
   const submitting = useRef(false);
   const panel = useRef<HTMLElement>(null);
 
-  const preferredRoom = rooms.find((room) => room.id === params.get("room"));
+  const rooms = getRooms(data);
+  const preferredRoom = rooms.find((room) => room.visible && room.id === params.get("room"));
   const selectedRoom = rooms.find((room) => room.id === roomId);
-  const rate = selectedRoom ? roomSettings(data, selectedRoom).rate : 0;
-  const results = step > 0 ? rooms.filter((room) => room.capacity >= stay.guests).map((room) => {
-    const { rate, inventory } = roomSettings(data, room);
+  const rate = selectedRoom?.rate ?? 0;
+  const results = step > 0 ? rooms.filter((room) => room.visible && room.capacity >= stay.guests).map((room) => {
+    const { rate, inventory } = room;
     return { room, rate, available: availableRooms(room, inventory, stay, data.reservations) };
   }) : [];
   const selectedAvailable = results.some(({ room, available }) => room.id === roomId && available > 0);
@@ -68,7 +69,7 @@ export default function BookingFlow() {
     const invalid = stayError(stay);
     if (invalid) return setError(invalid);
     if (!roomId && preferredRoom && preferredRoom.capacity >= stay.guests) {
-      if (availableRooms(preferredRoom, roomSettings(data, preferredRoom).inventory, stay, data.reservations)) setRoomId(preferredRoom.id);
+      if (availableRooms(preferredRoom, preferredRoom.inventory, stay, data.reservations)) setRoomId(preferredRoom.id);
     }
     goTo(1);
   }
@@ -127,7 +128,7 @@ export default function BookingFlow() {
               <CircleCheck size={42} aria-hidden="true" />
               <h2>Demo booking confirmed</h2>
               <p>Thanks, {receipt.guest.name}. Your reference is <strong className="booking-reference">{receipt.id}</strong>.</p>
-              <Summary stay={receipt} roomName={selectedRoom?.name ?? "Room"} nightlyRate={receipt.nightlyRate}>
+              <Summary stay={receipt} roomName={receipt.roomName ?? selectedRoom?.name ?? "Room"} nightlyRate={receipt.nightlyRate}>
                 <div className="summary-total"><dt>Simulated payment · {paymentLabels[method]}</dt><dd>{price(receipt.total)}</dd></div>
               </Summary>
               <div className="actions">
@@ -169,7 +170,7 @@ export default function BookingFlow() {
                   <label key={room.id} className="room-option" data-unavailable={!available}>
                     <input type="radio" name="room" value={room.id} checked={roomId === room.id && available > 0} disabled={!available} onChange={() => setRoomId(room.id)} />
                     <span className="room-option-photo"><ResortPhoto photo={room.photo} sizes="96px" /></span>
-                    <span><strong>{room.name}</strong><small>{room.bed} · Pool view</small><small>{available ? `${available} available` : "Sold out for these dates"}</small></span>
+                    <span><strong>{room.name}</strong><small>{room.bed} · {room.guests} maximum</small><small>{available ? `${available} available` : "Sold out for these dates"}</small></span>
                     <span className="room-option-price"><strong>{price(nightly * nights(stay))}</strong><small>{price(nightly)} / night</small></span>
                   </label>
                 ))}
@@ -220,7 +221,7 @@ export default function BookingFlow() {
           )}
         </section>
         {!receipt && <aside className="booking-aside">
-          <div className="booking-aside-photo"><ResortPhoto photo={summaryRoom?.photo ?? rooms[0].photo} sizes="(max-width: 800px) 100vw, 380px" /></div>
+          <div className="booking-aside-photo"><ResortPhoto photo={summaryRoom?.photo ?? photos.double} sizes="(max-width: 800px) 100vw, 380px" /></div>
           <div className="booking-aside-copy">
             <h3>Your stay</h3>
             {summaryRoom ? (

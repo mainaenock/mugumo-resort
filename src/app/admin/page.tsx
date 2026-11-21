@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import DemoAdmin from "@/components/DemoAdmin";
-import { PageHero } from "@/components/PageSections";
+import "./admin.css";
 
 export const metadata: Metadata = {
   title: "Demo admin",
@@ -8,10 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function AdminPage() {
-  return (
-    <>
-      <PageHero label="Resort operations" title="Demo admin" description="Manage reservations, simulated payments, room inventory and the sample menu." />
-      <div className="wrap booking-shell"><DemoAdmin /></div>
-    </>
-  );
+  return <DemoAdmin />;
 }
